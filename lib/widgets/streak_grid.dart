@@ -29,12 +29,7 @@ class StreakGrid extends StatelessWidget {
     );
 
     const inactiveColor = Color(0xFFEBEDF0);
-    const activeColors = [
-      Color(0xFF9BE9A8),
-      Color(0xFF40C463),
-      Color(0xFF30A14E),
-      Color(0xFF216E39),
-    ];
+    const activeColor = Color(0xFF40C463);
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -46,15 +41,8 @@ class StreakGrid extends StatelessWidget {
               final idx = week * 7 + dayOfWeek;
               final date = days[idx];
               final hasCheckIn = activeSet.contains(date.toIso8601String());
-              final age = today.difference(date).inDays;
-              final intensity =
-                  (1 - (age / (totalDays - 1))).clamp(0.0, 1.0);
               final color = hasCheckIn
-                  ? activeColors[
-                      (intensity * (activeColors.length - 1))
-                          .round()
-                          .clamp(0, activeColors.length - 1)
-                    ]
+                  ? activeColor
                   : inactiveColor;
 
               return Container(

@@ -1,90 +1,22 @@
-enum HabitType {
-  gambling('ギャンブル', '🎰'),
-  alcohol('お酒', '🍺'),
-  smoking('タバコ', '🚬'),
-  gaming('ゲーム', '🎮'),
-  shopping('買い物', '🛍️'),
-  social_media('SNS', '📱');
-
-  final String displayName;
-  final String emoji;
-
-  const HabitType(this.displayName, this.emoji);
-}
-
-enum CharacterKind {
-  flameFox('フレイムフォックス'),
-  emberDragon('エンバードラゴン'),
-  spiritBud('スピリットバッド'),
-  cyberOwl('サイバーアウル'),
-  aquaSlime('アクアスライム');
-
-  final String displayName;
-
-  const CharacterKind(this.displayName);
-}
-
-class CollectedCharacter {
-  final String id;
-  final HabitType type;
-  final CharacterKind characterKind;
-  final int stageIndex; // 0-3 (週1-週4の姿)
-  final DateTime collectedAt;
-
-  CollectedCharacter({
-    required this.id,
-    required this.type,
-    required this.characterKind,
-    required this.stageIndex,
-    required this.collectedAt,
-  });
-
-  Map<String, dynamic> toJson() => {
-        'id': id,
-        'type': type.name,
-        'characterKind': characterKind.name,
-        'stageIndex': stageIndex,
-        'collectedAt': collectedAt.toIso8601String(),
-      };
-
-  factory CollectedCharacter.fromJson(Map<String, dynamic> json) =>
-      CollectedCharacter(
-        id: json['id'],
-        type: HabitType.values.firstWhere((e) => e.name == json['type']),
-        characterKind:
-            CharacterKind.values.firstWhere((e) => e.name == json['characterKind']),
-        stageIndex: json['stageIndex'] ?? 0,
-        collectedAt: DateTime.parse(json['collectedAt']),
-      );
-}
-
 class HabitRecord {
   final String id;
-  final HabitType type;
-  final CharacterKind characterKind;
+  final String type;
+  final int color;
   final DateTime startDate;
   final List<DateTime> checkIns;
+  final String memo;
 
   HabitRecord({
     required this.id,
     required this.type,
-    required this.characterKind,
+    required this.color,
     required this.startDate,
     required this.checkIns,
+    required this.memo,
   });
 
   List<DateTime> get normalizedCheckIns {
-    final seen = <String>{};
-    final result = <DateTime>[];
-    for (final date in checkIns) {
-      final d = _onlyDate(date);
-      final key = d.toIso8601String();
-      if (seen.add(key)) {
-        result.add(d);
-      }
-    }
-    result.sort((a, b) => a.compareTo(b));
-    return result;
+    return _normalizeDates(checkIns);
   }
 
   DateTime? get lastCheckIn {
@@ -94,79 +26,53 @@ class HabitRecord {
   }
 
   int get consecutiveDays {
-    final dates = normalizedCheckIns;
-    if (dates.isEmpty) return 0;
-    int streak = 1;
-    for (int i = dates.length - 1; i > 0; i--) {
-      final diff = dates[i].difference(dates[i - 1]).inDays;
-      if (diff == 1) {
-        streak += 1;
-      } else if (diff == 0) {
-        continue;
-      } else {
+    final today = _onlyDate(DateTime.now());
+    final start = _onlyDate(startDate);
+    if (today.isBefore(start)) return 0;
+    final failures = {for (final d in normalizedCheckIns) d.toIso8601String()};
+    int streak = 0;
+    for (var d = today; !d.isBefore(start); d = d.subtract(const Duration(days: 1))) {
+      if (failures.contains(d.toIso8601String())) {
         break;
       }
+      streak += 1;
     }
     return streak;
-  }
-
-  int get completedWeeks => (consecutiveDays ~/ 7).clamp(0, 4);
-
-  int get currentStageIndex => completedWeeks.clamp(0, 3);
-
-  bool get isCleared => consecutiveDays >= 28;
-
-  bool get hasBrokenStreak {
-    final last = lastCheckIn;
-    if (last == null) return false;
-    return DateTime.now().difference(last).inDays > 1 && consecutiveDays > 0;
-  }
-
-  String get stageLabel {
-    switch (currentStageIndex) {
-      case 0:
-        return '週1';
-      case 1:
-        return '週2';
-      case 2:
-        return '週3';
-      case 3:
-        return '週4';
-      default:
-        return '週1';
-    }
   }
 
   HabitRecord copyWith({
     List<DateTime>? checkIns,
     DateTime? startDate,
+    int? color,
+    String? type,
+    String? memo,
   }) {
     return HabitRecord(
       id: id,
-      type: type,
-      characterKind: characterKind,
+      type: type ?? this.type,
+      color: color ?? this.color,
       startDate: startDate ?? this.startDate,
       checkIns: checkIns ?? this.checkIns,
+      memo: memo ?? this.memo,
     );
   }
 
   Map<String, dynamic> toJson() => {
         'id': id,
-        'type': type.name,
-        'characterKind': characterKind.name,
+        'type': type,
+        'color': color,
+        'tracking': 'auto',
         'startDate': startDate.toIso8601String(),
         'checkIns': normalizedCheckIns.map((d) => d.toIso8601String()).toList(),
+        'memo': memo,
       };
 
   factory HabitRecord.fromJson(Map<String, dynamic> json) {
-    final type =
-        HabitType.values.firstWhere((e) => e.name == json['type']);
+    final type = json['type'] as String? ?? '';
+    final color = json['color'] as int? ?? 0xFF40C463;
     final start = DateTime.parse(json['startDate']);
-    final characterKind = json['characterKind'] != null
-        ? CharacterKind.values
-            .firstWhere((e) => e.name == json['characterKind'])
-        : CharacterKind.values[start.millisecondsSinceEpoch %
-            CharacterKind.values.length];
+    final tracking = json['tracking'] as String?;
+    final memo = json['memo'] as String? ?? '';
 
     // 旧フォーマット(daysClean)からのマイグレーション
     if (json['checkIns'] == null && json['daysClean'] != null) {
@@ -175,27 +81,62 @@ class HabitRecord {
         daysClean,
         (index) => _onlyDate(start.add(Duration(days: index))),
       );
+      final failures = _invertDays(start, generated);
       return HabitRecord(
         id: json['id'],
         type: type,
-        characterKind: characterKind,
+        color: color,
         startDate: start,
-        checkIns: generated,
+        checkIns: failures,
+        memo: memo,
       );
     }
 
     final rawList = (json['checkIns'] as List<dynamic>? ?? [])
         .map((e) => DateTime.parse(e as String))
         .toList();
+    final normalized = _normalizeDates(rawList);
+    final failures =
+        tracking == 'auto' ? normalized : _invertDays(start, normalized);
 
     return HabitRecord(
       id: json['id'],
       type: type,
-      characterKind: characterKind,
+      color: color,
       startDate: start,
-      checkIns: rawList,
+      checkIns: failures,
+      memo: memo,
     );
   }
 }
 
 DateTime _onlyDate(DateTime date) => DateTime(date.year, date.month, date.day);
+
+List<DateTime> _normalizeDates(List<DateTime> dates) {
+  final seen = <String>{};
+  final result = <DateTime>[];
+  for (final date in dates) {
+    final d = _onlyDate(date);
+    final key = d.toIso8601String();
+    if (seen.add(key)) {
+      result.add(d);
+    }
+  }
+  result.sort((a, b) => a.compareTo(b));
+  return result;
+}
+
+List<DateTime> _invertDays(DateTime start, List<DateTime> successes) {
+  final today = _onlyDate(DateTime.now());
+  final startDay = _onlyDate(start);
+  if (today.isBefore(startDay)) return [];
+  final successSet = {for (final d in successes) d.toIso8601String()};
+  final failures = <DateTime>[];
+  for (var d = today; !d.isBefore(startDay); d = d.subtract(const Duration(days: 1))) {
+    final key = d.toIso8601String();
+    if (!successSet.contains(key)) {
+      failures.add(d);
+    }
+  }
+  return failures;
+}
