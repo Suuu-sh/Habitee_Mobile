@@ -55,6 +55,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: const Color(0xFFF4F1FA),
       appBar: null,
       body: _records.isEmpty
           ? _buildEmptyState()
@@ -120,7 +121,7 @@ class _WeeklyTracker extends StatelessWidget {
     );
 
     return Container(
-      color: const Color(0xFFF7F7F7),
+      color: const Color(0xFFF4F1FA),
       child: Column(
         children: [
           Padding(
