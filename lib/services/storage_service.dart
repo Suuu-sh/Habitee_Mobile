@@ -33,6 +33,7 @@ class StorageService {
       startDate: DateTime.now(),
       checkIns: [],
       memo: '',
+      failureNotes: {},
     );
 
     records.add(newRecord);
@@ -62,11 +63,22 @@ class StorageService {
     await _saveRecordsInternal(records, prefs);
   }
 
-  Future<void> checkIn(String recordId, {DateTime? date}) async {
-    await toggleFailure(recordId, date ?? DateTime.now());
+  Future<void> deleteRecord(String recordId) async {
+    final prefs = await SharedPreferences.getInstance();
+    final records = await getRecords();
+    records.removeWhere((r) => r.id == recordId);
+    await _saveRecordsInternal(records, prefs);
   }
 
-  Future<void> toggleFailure(String recordId, DateTime date) async {
+  Future<void> checkIn(String recordId, {DateTime? date}) async {
+    await toggleFailure(recordId, date ?? DateTime.now(), comment: '');
+  }
+
+  Future<void> toggleFailure(
+    String recordId,
+    DateTime date, {
+    required String comment,
+  }) async {
     final prefs = await SharedPreferences.getInstance();
     final records = await getRecords();
     final targetIndex = records.indexWhere((r) => r.id == recordId);
@@ -75,17 +87,23 @@ class StorageService {
     final target = records[targetIndex];
     final day = _onlyDate(date);
     final updatedList = List<DateTime>.from(target.checkIns);
+    final updatedNotes = Map<String, String>.from(target.failureNotes);
     final alreadyFailed =
         target.normalizedCheckIns.any((d) => _isSameDay(d, day));
     if (alreadyFailed) {
       updatedList.removeWhere((d) => _isSameDay(d, day));
+      updatedNotes.remove(day.toIso8601String());
     } else {
       updatedList.add(day);
+      if (comment.isNotEmpty) {
+        updatedNotes[day.toIso8601String()] = comment;
+      }
     }
 
     records[targetIndex] = target.copyWith(
       checkIns: updatedList,
       startDate: target.startDate,
+      failureNotes: updatedNotes,
     );
 
     await _saveRecordsInternal(records, prefs);

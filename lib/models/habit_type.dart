@@ -5,6 +5,7 @@ class HabitRecord {
   final DateTime startDate;
   final List<DateTime> checkIns;
   final String memo;
+  final Map<String, String> failureNotes;
 
   HabitRecord({
     required this.id,
@@ -13,6 +14,7 @@ class HabitRecord {
     required this.startDate,
     required this.checkIns,
     required this.memo,
+    required this.failureNotes,
   });
 
   List<DateTime> get normalizedCheckIns {
@@ -46,6 +48,7 @@ class HabitRecord {
     int? color,
     String? type,
     String? memo,
+    Map<String, String>? failureNotes,
   }) {
     return HabitRecord(
       id: id,
@@ -54,6 +57,7 @@ class HabitRecord {
       startDate: startDate ?? this.startDate,
       checkIns: checkIns ?? this.checkIns,
       memo: memo ?? this.memo,
+      failureNotes: failureNotes ?? this.failureNotes,
     );
   }
 
@@ -65,6 +69,7 @@ class HabitRecord {
         'startDate': startDate.toIso8601String(),
         'checkIns': normalizedCheckIns.map((d) => d.toIso8601String()).toList(),
         'memo': memo,
+        'failureNotes': failureNotes,
       };
 
   factory HabitRecord.fromJson(Map<String, dynamic> json) {
@@ -73,6 +78,9 @@ class HabitRecord {
     final start = DateTime.parse(json['startDate']);
     final tracking = json['tracking'] as String?;
     final memo = json['memo'] as String? ?? '';
+    final rawNotes = json['failureNotes'] as Map<String, dynamic>? ?? {};
+    final failureNotes = rawNotes.map((key, value) =>
+        MapEntry(key, value == null ? '' : value.toString()));
 
     // 旧フォーマット(daysClean)からのマイグレーション
     if (json['checkIns'] == null && json['daysClean'] != null) {
@@ -89,6 +97,7 @@ class HabitRecord {
         startDate: start,
         checkIns: failures,
         memo: memo,
+        failureNotes: failureNotes,
       );
     }
 
@@ -106,6 +115,7 @@ class HabitRecord {
       startDate: start,
       checkIns: failures,
       memo: memo,
+      failureNotes: failureNotes,
     );
   }
 }
