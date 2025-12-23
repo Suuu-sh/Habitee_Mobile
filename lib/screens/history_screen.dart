@@ -232,6 +232,7 @@ class _FilterBar extends StatelessWidget {
                 '$taskLabel / $rangeLabel',
                 style: const TextStyle(fontSize: 12),
                 overflow: TextOverflow.ellipsis,
+                maxLines: 1,
               ),
             ),
             const Icon(Icons.chevron_right_rounded, size: 18),
