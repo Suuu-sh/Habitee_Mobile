@@ -48,15 +48,7 @@ class _InsightScreenState extends State<InsightScreen> {
       child: ListView(
         padding: const EdgeInsets.fromLTRB(20, 40, 20, 24),
         children: [
-          Text(
-            'Insight',
-            style: TextStyle(
-              fontSize: 28,
-              fontWeight: FontWeight.bold,
-              color: Colors.grey[900],
-            ),
-          ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 4),
           _StatRow(
             children: [
               _StatCard(
