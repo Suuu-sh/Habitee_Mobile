@@ -16,11 +16,14 @@ class StorageService {
             .map((json) => HabitRecord.fromJson(json))
             .toList();
 
+    final normalized = _normalizeOrder(records);
     if (prefs.containsKey(_legacyRecordsKey)) {
-      await _saveRecordsInternal(records, prefs);
+      await _saveRecordsInternal(normalized, prefs);
       await prefs.remove(_legacyRecordsKey);
+    } else if (!_sameOrder(records, normalized)) {
+      await _saveRecordsInternal(normalized, prefs);
     }
-    return records;
+    return normalized;
   }
 
   Future<void> addRecord(String type, int color) async {
@@ -34,6 +37,7 @@ class StorageService {
       checkIns: [],
       memo: '',
       failureNotes: {},
+      order: records.length,
     );
 
     records.add(newRecord);
@@ -68,6 +72,15 @@ class StorageService {
     final records = await getRecords();
     records.removeWhere((r) => r.id == recordId);
     await _saveRecordsInternal(records, prefs);
+  }
+
+  Future<void> updateOrder(List<HabitRecord> ordered) async {
+    final prefs = await SharedPreferences.getInstance();
+    final updated = <HabitRecord>[];
+    for (int i = 0; i < ordered.length; i++) {
+      updated.add(ordered[i].copyWith(order: i));
+    }
+    await _saveRecordsInternal(updated, prefs);
   }
 
   Future<void> checkIn(String recordId, {DateTime? date}) async {
@@ -115,6 +128,23 @@ class StorageService {
     await prefs.setString(_recordsKey, jsonString);
   }
 
+}
+
+List<HabitRecord> _normalizeOrder(List<HabitRecord> records) {
+  final sorted = List<HabitRecord>.from(records)
+    ..sort((a, b) => a.order.compareTo(b.order));
+  for (int i = 0; i < sorted.length; i++) {
+    sorted[i] = sorted[i].copyWith(order: i);
+  }
+  return sorted;
+}
+
+bool _sameOrder(List<HabitRecord> a, List<HabitRecord> b) {
+  if (a.length != b.length) return false;
+  for (int i = 0; i < a.length; i++) {
+    if (a[i].id != b[i].id || a[i].order != b[i].order) return false;
+  }
+  return true;
 }
 
 bool _isSameDay(DateTime a, DateTime b) {

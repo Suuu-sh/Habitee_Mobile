@@ -78,99 +78,192 @@ class _HistoryScreenState extends State<HistoryScreen> {
       }
       return true;
     }).toList();
+    
+    final colorScheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     return Container(
-      color: const Color(0xFFF4F1FA),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            colorScheme.primary.withOpacity(0.05),
+            Theme.of(context).scaffoldBackgroundColor,
+          ],
+        ),
+      ),
       child: _entries.isEmpty
-          ? _buildEmptyState()
-          : Column(
-              children: [
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(20, 52, 20, 10),
-                  child: _FilterBar(
-                    taskLabel: _selectedTask ?? 'すべて',
-                    rangeLabel: _formatRange(_rangeStart, _rangeEnd),
-                    onTap: _openFilterSheet,
+          ? _buildEmptyState(context)
+          : SafeArea(
+              child: Column(
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(20, 32, 20, 12),
+                    child: _FilterBar(
+                      taskLabel: _selectedTask ?? 'すべて',
+                      rangeLabel: _formatRange(_rangeStart, _rangeEnd),
+                      onTap: _openFilterSheet,
+                    ),
                   ),
-                ),
-                Expanded(
-                  child: ListView.builder(
-                    padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
-                    itemCount: visibleEntries.length,
-                    itemBuilder: (context, index) {
-                      final entry = visibleEntries[index];
-                      return Container(
-                        margin: const EdgeInsets.only(bottom: 12),
-                        padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(16),
-                          border: Border.all(color: const Color(0xFFE9E9EF)),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
+                  Expanded(
+                    child: ListView.builder(
+                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 24),
+                      itemCount: visibleEntries.length,
+                      itemBuilder: (context, index) {
+                        final entry = visibleEntries[index];
+                        return TweenAnimationBuilder<double>(
+                          duration: Duration(milliseconds: 200 + (index * 30)),
+                          tween: Tween(begin: 0.0, end: 1.0),
+                          builder: (context, value, child) {
+                            return Transform.translate(
+                              offset: Offset(0, 10 * (1 - value)),
+                              child: Opacity(
+                                opacity: value,
+                                child: child,
+                              ),
+                            );
+                          },
+                          child: Container(
+                            margin: const EdgeInsets.only(bottom: 12),
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: Theme.of(context).cardColor,
+                              borderRadius: BorderRadius.circular(18),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Color(entry.color).withOpacity(isDark ? 0.2 : 0.12),
+                                  blurRadius: 12,
+                                  offset: const Offset(0, 4),
+                                ),
+                              ],
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                Container(
-                                  width: 10,
-                                  height: 28,
-                                  decoration: BoxDecoration(
-                                    color: Color(entry.color),
-                                    borderRadius: BorderRadius.circular(6),
-                                  ),
-                                ),
-                                const SizedBox(width: 10),
-                                Expanded(
-                                  child: Text(
-                                    entry.taskName,
-                                    style: const TextStyle(
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w600,
+                                Row(
+                                  children: [
+                                    Container(
+                                      padding: const EdgeInsets.all(8),
+                                      decoration: BoxDecoration(
+                                        gradient: LinearGradient(
+                                          colors: [
+                                            Color(entry.color),
+                                            Color(entry.color).withOpacity(0.7),
+                                          ],
+                                        ),
+                                        borderRadius: BorderRadius.circular(10),
+                                      ),
+                                      child: const Icon(
+                                        Icons.event_busy_rounded,
+                                        color: Colors.white,
+                                        size: 16,
+                                      ),
                                     ),
-                                  ),
+                                    const SizedBox(width: 12),
+                                    Expanded(
+                                      child: Text(
+                                        entry.taskName,
+                                        style: const TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ),
+                                    Container(
+                                      padding: const EdgeInsets.symmetric(
+                                        horizontal: 10,
+                                        vertical: 4,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        color: Color(entry.color).withOpacity(0.1),
+                                        borderRadius: BorderRadius.circular(8),
+                                      ),
+                                      child: Text(
+                                        _formatDate(entry.date),
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          fontWeight: FontWeight.w600,
+                                          color: Color(entry.color),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                                Text(
-                                  _formatDate(entry.date),
-                                  style: TextStyle(
-                                    fontSize: 11,
-                                    color: Colors.grey[600],
+                                const SizedBox(height: 12),
+                                Container(
+                                  padding: const EdgeInsets.all(12),
+                                  decoration: BoxDecoration(
+                                    color: isDark
+                                        ? Colors.grey[850]
+                                        : Colors.grey[50],
+                                    borderRadius: BorderRadius.circular(12),
+                                  ),
+                                  child: Row(
+                                    crossAxisAlignment: CrossAxisAlignment.start,
+                                    children: [
+                                      Icon(
+                                        Icons.comment_rounded,
+                                        size: 16,
+                                        color: isDark ? Colors.grey[500] : Colors.grey[600],
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Expanded(
+                                        child: Text(
+                                          entry.comment,
+                                          style: TextStyle(
+                                            fontSize: 14,
+                                            color: isDark ? Colors.grey[300] : Colors.grey[800],
+                                          ),
+                                        ),
+                                      ),
+                                    ],
                                   ),
                                 ),
                               ],
                             ),
-                            const SizedBox(height: 10),
-                            Text(
-                              entry.comment,
-                              style: TextStyle(
-                                fontSize: 13,
-                                color: Colors.grey[800],
-                              ),
-                            ),
-                          ],
-                        ),
-                      );
-                    },
+                          ),
+                        );
+                      },
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
     );
   }
 }
 
-Widget _buildEmptyState() {
+Widget _buildEmptyState(BuildContext context) {
+  final colorScheme = Theme.of(context).colorScheme;
+  
   return Center(
     child: Column(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        const Text('🗂️', style: TextStyle(fontSize: 64)),
-        const SizedBox(height: 16),
-        Text(
+        Container(
+          padding: const EdgeInsets.all(32),
+          decoration: BoxDecoration(
+            color: colorScheme.primary.withOpacity(0.1),
+            shape: BoxShape.circle,
+          ),
+          child: const Text('🗂️', style: TextStyle(fontSize: 64)),
+        ),
+        const SizedBox(height: 24),
+        const Text(
           '失敗の記録はまだありません',
           style: TextStyle(
-            fontSize: 18,
+            fontSize: 22,
             fontWeight: FontWeight.w600,
-            color: Colors.grey[800],
+          ),
+        ),
+        const SizedBox(height: 12),
+        Text(
+          'タスクを失敗した時に\nメモを残すことができます',
+          textAlign: TextAlign.center,
+          style: TextStyle(
+            fontSize: 15,
+            color: Colors.grey[600],
           ),
         ),
       ],
@@ -213,29 +306,60 @@ class _FilterBar extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     return InkWell(
       onTap: onTap,
       borderRadius: BorderRadius.circular(16),
       child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
         decoration: BoxDecoration(
-          color: Colors.white,
+          color: Theme.of(context).cardColor,
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: const Color(0xFFE9E9EF)),
+          border: Border.all(
+            color: colorScheme.primary.withOpacity(0.3),
+            width: 1.5,
+          ),
+          boxShadow: [
+            BoxShadow(
+              color: colorScheme.primary.withOpacity(isDark ? 0.15 : 0.08),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
         ),
         child: Row(
           children: [
-            const Icon(Icons.tune_rounded, size: 18),
-            const SizedBox(width: 10),
+            Container(
+              padding: const EdgeInsets.all(6),
+              decoration: BoxDecoration(
+                color: colorScheme.primary.withOpacity(0.1),
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(
+                Icons.filter_list_rounded,
+                size: 18,
+                color: colorScheme.primary,
+              ),
+            ),
+            const SizedBox(width: 12),
             Expanded(
               child: Text(
                 '$taskLabel / $rangeLabel',
-                style: const TextStyle(fontSize: 12),
+                style: const TextStyle(
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                ),
                 overflow: TextOverflow.ellipsis,
                 maxLines: 1,
               ),
             ),
-            const Icon(Icons.chevron_right_rounded, size: 18),
+            Icon(
+              Icons.arrow_forward_ios_rounded,
+              size: 14,
+              color: colorScheme.primary,
+            ),
           ],
         ),
       ),

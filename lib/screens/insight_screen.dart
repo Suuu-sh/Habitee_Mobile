@@ -38,94 +38,135 @@ class _InsightScreenState extends State<InsightScreen> {
                 totalTasks)
             .toStringAsFixed(1);
     final longestStreak =
-        _records.map((r) => r.consecutiveDays).reduce((a, b) => a > b ? a : b);
+        _records.map((r) => r.longestStreak).reduce((a, b) => a > b ? a : b);
     final successRate7d = _successRateLastDays(_records, 7);
     final weekTrend = _weeklySuccessTrend(_records, 6);
     final weekLabels = _weeklyLabels(weekTrend.length);
     final monthTrend = _monthlySuccessTrend(_records, 6);
     final monthLabels = _monthlyLabels(monthTrend.length);
+    final colorScheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
-      color: const Color(0xFFF4F1FA),
-      child: ListView(
-        padding: const EdgeInsets.fromLTRB(20, 40, 20, 24),
-        children: [
-          const SizedBox(height: 4),
-          _StatRow(
-            children: [
-              _StatCard(
-                title: 'タスク数',
-                value: '$totalTasks',
-                caption: 'アクティブ',
-              ),
-              _StatCard(
-                title: '平均継続',
-                value: '$avgStreak日',
-                caption: '現在の連続',
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          _StatRow(
-            children: [
-              _StatCard(
-                title: '直近7日達成率',
-                value: '${successRate7d.toStringAsFixed(0)}%',
-                caption: '全タスク平均',
-              ),
-              _StatCard(
-                title: '最高継続',
-                value: '$longestStreak日',
-                caption: '現在の連続',
-              ),
-            ],
-          ),
-          const SizedBox(height: 20),
-          _SectionTitle('週ごとの達成率'),
-          const SizedBox(height: 10),
-          _BarChart(
-            values: weekTrend,
-            unitLabel: '%',
-            caption: '直近6週',
-            labels: weekLabels,
-          ),
-          const SizedBox(height: 20),
-          _SectionTitle('月ごとの達成率'),
-          const SizedBox(height: 10),
-          _BarChart(
-            values: monthTrend,
-            unitLabel: '%',
-            caption: '直近6ヶ月',
-            labels: monthLabels,
-          ),
-        ],
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            colorScheme.primary.withOpacity(0.05),
+            Theme.of(context).scaffoldBackgroundColor,
+          ],
+        ),
+      ),
+      child: SafeArea(
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(20, 32, 20, 24),
+          children: [
+            const SizedBox(height: 8),
+            _StatRow(
+              children: [
+                _StatCard(
+                  title: 'タスク数',
+                  value: '$totalTasks',
+                  caption: 'アクティブ',
+                  icon: Icons.task_alt_rounded,
+                  color: Colors.blue,
+                ),
+                _StatCard(
+                  title: '平均継続',
+                  value: '$avgStreak日',
+                  caption: '現在の連続',
+                  icon: Icons.trending_up_rounded,
+                  color: Colors.green,
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            _StatRow(
+              children: [
+                _StatCard(
+                  title: '直近7日達成率',
+                  value: '${successRate7d.toStringAsFixed(0)}%',
+                  caption: '全タスク平均',
+                  icon: Icons.percent_rounded,
+                  color: Colors.orange,
+                ),
+                _StatCard(
+                  title: '最高記録',
+                  value: '$longestStreak日',
+                  caption: 'ベスト継続',
+                  icon: Icons.emoji_events_rounded,
+                  color: Colors.purple,
+                ),
+              ],
+            ),
+            const SizedBox(height: 28),
+            _SectionTitle('週ごとの達成率', Icons.calendar_view_week_rounded),
+            const SizedBox(height: 12),
+            _BarChart(
+              values: weekTrend,
+              unitLabel: '%',
+              caption: '直近6週',
+              labels: weekLabels,
+            ),
+            const SizedBox(height: 24),
+            _SectionTitle('月ごとの達成率', Icons.calendar_month_rounded),
+            const SizedBox(height: 12),
+            _BarChart(
+              values: monthTrend,
+              unitLabel: '%',
+              caption: '直近6ヶ月',
+              labels: monthLabels,
+            ),
+          ],
+        ),
       ),
     );
   }
 }
 
 Widget _buildEmptyState(BuildContext context) {
+  final colorScheme = Theme.of(context).colorScheme;
+  
   return Container(
-    color: const Color(0xFFF4F1FA),
+    decoration: BoxDecoration(
+      gradient: LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [
+          colorScheme.primary.withOpacity(0.05),
+          Theme.of(context).scaffoldBackgroundColor,
+        ],
+      ),
+    ),
     child: Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          const Text('📈', style: TextStyle(fontSize: 64)),
-          const SizedBox(height: 16),
-          Text(
+          Container(
+            padding: const EdgeInsets.all(32),
+            decoration: BoxDecoration(
+              color: colorScheme.primary.withOpacity(0.1),
+              shape: BoxShape.circle,
+            ),
+            child: const Text('📈', style: TextStyle(fontSize: 64)),
+          ),
+          const SizedBox(height: 24),
+          const Text(
             'データがありません',
             style: TextStyle(
-              fontSize: 18,
+              fontSize: 22,
               fontWeight: FontWeight.w600,
-              color: Colors.grey[800],
             ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
           Text(
             'タスクを追加して継続すると\nインサイトが表示されます',
             textAlign: TextAlign.center,
-            style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+            style: TextStyle(
+              fontSize: 15,
+              color: Colors.grey[600],
+            ),
           ),
         ],
       ),
@@ -178,44 +219,74 @@ class _StatCard extends StatelessWidget {
   final String title;
   final String value;
   final String caption;
+  final IconData icon;
+  final Color color;
 
   const _StatCard({
     required this.title,
     required this.value,
     required this.caption,
+    required this.icon,
+    required this.color,
   });
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     return Container(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
+      padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: color.withOpacity(isDark ? 0.2 : 0.1),
             blurRadius: 12,
-            offset: const Offset(0, 6),
+            offset: const Offset(0, 4),
           ),
         ],
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: color.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(icon, color: color, size: 18),
+              ),
+              const Spacer(),
+              Text(
+                value,
+                style: TextStyle(
+                  fontSize: 26,
+                  fontWeight: FontWeight.bold,
+                  color: color,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 12),
           Text(
             title,
-            style: TextStyle(fontSize: 12, color: Colors.grey[600]),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            value,
-            style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+            style: TextStyle(
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+              color: isDark ? Colors.grey[300] : Colors.grey[700],
+            ),
           ),
           const SizedBox(height: 4),
           Text(
             caption,
-            style: TextStyle(fontSize: 11, color: Colors.grey[500]),
+            style: TextStyle(
+              fontSize: 11,
+              color: isDark ? Colors.grey[500] : Colors.grey[500],
+            ),
           ),
         ],
       ),
@@ -225,14 +296,33 @@ class _StatCard extends StatelessWidget {
 
 class _SectionTitle extends StatelessWidget {
   final String title;
+  final IconData icon;
 
-  const _SectionTitle(this.title);
+  const _SectionTitle(this.title, this.icon);
 
   @override
   Widget build(BuildContext context) {
-    return Text(
-      title,
-      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700),
+    final colorScheme = Theme.of(context).colorScheme;
+    
+    return Row(
+      children: [
+        Container(
+          padding: const EdgeInsets.all(6),
+          decoration: BoxDecoration(
+            color: colorScheme.primary.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(8),
+          ),
+          child: Icon(icon, size: 18, color: colorScheme.primary),
+        ),
+        const SizedBox(width: 10),
+        Text(
+          title,
+          style: const TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w700,
+          ),
+        ),
+      ],
     );
   }
 }
@@ -253,16 +343,19 @@ class _BarChart extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final maxValue = values.isEmpty ? 1.0 : values.reduce((a, b) => a > b ? a : b);
+    final colorScheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     return Container(
-      padding: const EdgeInsets.fromLTRB(16, 14, 16, 16),
+      padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: colorScheme.primary.withOpacity(isDark ? 0.15 : 0.08),
             blurRadius: 12,
-            offset: const Offset(0, 6),
+            offset: const Offset(0, 4),
           ),
         ],
       ),
@@ -279,38 +372,43 @@ class _BarChart extends StatelessWidget {
                 final height = (value / maxValue).clamp(0.0, 1.0) * 120;
                 return Expanded(
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 2),
+                    padding: const EdgeInsets.symmetric(horizontal: 3),
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.end,
                       children: [
-                        Stack(
-                          alignment: Alignment.bottomCenter,
-                          children: [
-                            Container(
-                              height: height,
-                              decoration: BoxDecoration(
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .primary
-                                    .withOpacity(0.8),
-                                borderRadius: BorderRadius.circular(8),
-                              ),
+                        Container(
+                          height: height < 1 ? 1 : height,
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              colors: [
+                                colorScheme.primary,
+                                colorScheme.secondary,
+                              ],
                             ),
-                            if (height >= 24)
-                              Padding(
-                                padding: const EdgeInsets.only(bottom: 6),
-                                child: Text(
-                                  '${value.toStringAsFixed(0)}$unitLabel',
+                            borderRadius: BorderRadius.circular(8),
+                            boxShadow: [
+                              BoxShadow(
+                                color: colorScheme.primary.withOpacity(0.3),
+                                blurRadius: 4,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          alignment: Alignment.center,
+                          child: height >= 24
+                              ? Text(
+                                  '${value.toStringAsFixed(0)}',
                                   style: const TextStyle(
                                     fontSize: 10,
                                     color: Colors.white,
                                     fontWeight: FontWeight.w600,
                                   ),
-                                ),
-                              ),
-                          ],
+                                )
+                              : null,
                         ),
-                        const SizedBox(height: 6),
+                        const SizedBox(height: 8),
                         SizedBox(
                           height: 24,
                           child: FittedBox(
@@ -321,7 +419,7 @@ class _BarChart extends StatelessWidget {
                                   : '${index + 1}',
                               style: TextStyle(
                                 fontSize: 7,
-                                color: Colors.grey[600],
+                                color: isDark ? Colors.grey[400] : Colors.grey[600],
                               ),
                               textAlign: TextAlign.center,
                               maxLines: 2,
@@ -336,10 +434,23 @@ class _BarChart extends StatelessWidget {
               }).toList(),
             ),
           ),
-          const SizedBox(height: 6),
-          Text(
-            caption,
-            style: TextStyle(fontSize: 11, color: Colors.grey[600]),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Icon(
+                Icons.info_outline_rounded,
+                size: 14,
+                color: isDark ? Colors.grey[500] : Colors.grey[600],
+              ),
+              const SizedBox(width: 6),
+              Text(
+                caption,
+                style: TextStyle(
+                  fontSize: 12,
+                  color: isDark ? Colors.grey[500] : Colors.grey[600],
+                ),
+              ),
+            ],
           ),
         ],
       ),

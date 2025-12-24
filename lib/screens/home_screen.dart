@@ -135,10 +135,26 @@ class _HomeScreenState extends State<HomeScreen> {
     await _loadRecords();
   }
 
+  Future<void> _reorderTasks(int oldIndex, int newIndex) async {
+    if (newIndex > oldIndex) {
+      newIndex -= 1;
+    }
+    final updated = List<HabitRecord>.from(_records);
+    final item = updated.removeAt(oldIndex);
+    updated.insert(newIndex, item);
+    setState(() {
+      _records = updated;
+    });
+    await _storage.updateOrder(updated);
+  }
+
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     return Scaffold(
-      backgroundColor: const Color(0xFFF4F1FA),
+      backgroundColor: isDark ? Theme.of(context).scaffoldBackgroundColor : const Color(0xFFF4F1FA),
       appBar: null,
       body: _records.isEmpty
           ? _buildEmptyState()
@@ -147,6 +163,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 records: _records,
                 onToggleFailure: _toggleFailure,
                 onOpenTask: _openTask,
+                onReorder: _reorderTasks,
               ),
             ),
       floatingActionButton: null,
@@ -154,8 +171,20 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildEmptyState() {
+    final colorScheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     return Container(
-      color: const Color(0xFFF4F1FA),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            colorScheme.primary.withOpacity(0.05),
+            Theme.of(context).scaffoldBackgroundColor,
+          ],
+        ),
+      ),
       child: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
@@ -163,28 +192,27 @@ class _HomeScreenState extends State<HomeScreen> {
             Container(
               padding: const EdgeInsets.all(32),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: colorScheme.primary.withOpacity(0.1),
                 shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
-                    color: Theme.of(context).colorScheme.primary.withOpacity(0.1),
+                    color: colorScheme.primary.withOpacity(0.2),
                     blurRadius: 20,
                     spreadRadius: 5,
                   ),
                 ],
               ),
-              child: Text(
+              child: const Text(
                 '🌱',
-                style: const TextStyle(fontSize: 80),
+                style: TextStyle(fontSize: 80),
               ),
             ),
             const SizedBox(height: 32),
-            Text(
+            const Text(
               'まだ記録がありません',
               style: TextStyle(
                 fontSize: 22,
                 fontWeight: FontWeight.w600,
-                color: Colors.grey[800],
               ),
             ),
             const SizedBox(height: 12),
@@ -192,7 +220,7 @@ class _HomeScreenState extends State<HomeScreen> {
               '下のボタンから始めましょう',
               style: TextStyle(
                 fontSize: 16,
-                color: Colors.grey[500],
+                color: isDark ? Colors.grey[400] : Colors.grey[500],
               ),
             ),
           ],
@@ -206,6 +234,7 @@ class _HomeScreenState extends State<HomeScreen> {
       records: _records,
       onToggleFailure: _toggleFailure,
       onOpenTask: _openTask,
+      onReorder: _reorderTasks,
     );
   }
 }
@@ -218,11 +247,13 @@ class _WeeklyTracker extends StatefulWidget {
     bool alreadyFailed,
   ) onToggleFailure;
   final Future<void> Function(HabitRecord record) onOpenTask;
+  final Future<void> Function(int oldIndex, int newIndex) onReorder;
 
   const _WeeklyTracker({
     required this.records,
     required this.onToggleFailure,
     required this.onOpenTask,
+    required this.onReorder,
   });
 
   @override
@@ -251,9 +282,20 @@ class _WeeklyTrackerState extends State<_WeeklyTracker> {
       7,
       (index) => _weekStart.add(Duration(days: index)),
     );
+    final colorScheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Container(
-      color: const Color(0xFFF4F1FA),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [
+            colorScheme.primary.withOpacity(0.05),
+            isDark ? Theme.of(context).scaffoldBackgroundColor : const Color(0xFFF4F1FA),
+          ],
+        ),
+      ),
       child: Column(
         children: [
           Padding(
@@ -261,11 +303,11 @@ class _WeeklyTrackerState extends State<_WeeklyTracker> {
             child: Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: Theme.of(context).cardColor,
                 borderRadius: BorderRadius.circular(24),
                 boxShadow: [
                   BoxShadow(
-                    color: Theme.of(context).colorScheme.primary.withOpacity(0.08),
+                    color: colorScheme.primary.withOpacity(isDark ? 0.15 : 0.08),
                     blurRadius: 20,
                     offset: const Offset(0, 4),
                   ),
@@ -280,46 +322,53 @@ class _WeeklyTrackerState extends State<_WeeklyTracker> {
             ),
           ),
           Expanded(
-            child: ListView.separated(
+            child: ReorderableListView.builder(
               padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
               itemCount: widget.records.length,
-              separatorBuilder: (_, __) => const SizedBox(height: 12),
+              onReorder: widget.onReorder,
+              buildDefaultDragHandles: false,
               itemBuilder: (context, index) {
                 final record = widget.records[index];
-                return TweenAnimationBuilder<double>(
-                  duration: Duration(milliseconds: 300 + (index * 50)),
-                  tween: Tween(begin: 0.0, end: 1.0),
-                  builder: (context, value, child) {
-                    return Transform.translate(
-                      offset: Offset(0, 20 * (1 - value)),
-                      child: Opacity(
-                        opacity: value,
-                        child: child,
-                      ),
-                    );
-                  },
-                  child: Container(
-                    padding: const EdgeInsets.all(18),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(20),
-                      boxShadow: [
-                        BoxShadow(
-                          color: Color(record.color).withOpacity(0.15),
-                          blurRadius: 12,
-                          offset: const Offset(0, 4),
+                return ReorderableDelayedDragStartListener(
+                  key: ValueKey(record.id),
+                  index: index,
+                  child: TweenAnimationBuilder<double>(
+                    duration: Duration(milliseconds: 300 + (index * 50)),
+                    tween: Tween(begin: 0.0, end: 1.0),
+                    builder: (context, value, child) {
+                      return Transform.translate(
+                        offset: Offset(0, 20 * (1 - value)),
+                        child: Opacity(
+                          opacity: value,
+                          child: child,
                         ),
-                      ],
-                    ),
-                    child: InkWell(
-                      borderRadius: BorderRadius.circular(20),
-                      onTap: () => widget.onOpenTask(record),
-                      child: _TaskRow(
-                        record: record,
-                        days: days,
-                        today: today,
-                        onToggleFailure: widget.onToggleFailure,
-                        onOpenTask: () => widget.onOpenTask(record),
+                      );
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.all(18),
+                      margin: const EdgeInsets.only(bottom: 12),
+                      decoration: BoxDecoration(
+                        color: Theme.of(context).cardColor,
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Color(record.color)
+                                .withOpacity(isDark ? 0.25 : 0.15),
+                            blurRadius: 12,
+                            offset: const Offset(0, 4),
+                          ),
+                        ],
+                      ),
+                      child: InkWell(
+                        borderRadius: BorderRadius.circular(20),
+                        onTap: () => widget.onOpenTask(record),
+                        child: _TaskRow(
+                          record: record,
+                          days: days,
+                          today: today,
+                          onToggleFailure: widget.onToggleFailure,
+                          onOpenTask: () => widget.onOpenTask(record),
+                        ),
                       ),
                     ),
                   ),
@@ -458,14 +507,39 @@ class _TaskRow extends StatelessWidget {
               ),
               const SizedBox(width: 12),
               Expanded(
-                child: Text(
-                  record.type,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 16,
-                    fontWeight: FontWeight.w600,
-                  ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      record.type,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Row(
+                      children: [
+                        Text(
+                          '${record.consecutiveDays}日継続中',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                        const SizedBox(width: 10),
+                        Text(
+                          'ベスト ${record.longestStreak}日',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: Colors.grey[500],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
                 ),
               ),
             ],
@@ -512,6 +586,8 @@ class _DayHeaderCell extends StatelessWidget {
   Widget build(BuildContext context) {
     final isToday = _isSameDay(date, today);
     final isSunday = date.weekday == DateTime.sunday;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     return Column(
       children: [
         Text(
@@ -521,7 +597,7 @@ class _DayHeaderCell extends StatelessWidget {
             fontWeight: FontWeight.w600,
             color: isSunday
                 ? Colors.red[400]
-                : Colors.grey[600],
+                : (isDark ? Colors.grey[400] : Colors.grey[600]),
           ),
         ),
         const SizedBox(height: 6),
@@ -555,7 +631,7 @@ class _DayHeaderCell extends StatelessWidget {
             style: TextStyle(
               fontSize: 13,
               fontWeight: FontWeight.w600,
-              color: isToday ? Colors.white : Colors.grey[800],
+              color: isToday ? Colors.white : (isDark ? Colors.grey[300] : Colors.grey[800]),
             ),
           ),
         ),
@@ -580,6 +656,8 @@ class _DayDot extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final baseColor = Color(color);
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     return AnimatedContainer(
       duration: const Duration(milliseconds: 200),
       width: 28,
@@ -597,7 +675,9 @@ class _DayDot extends StatelessWidget {
             : null,
         color: active
             ? null
-            : (isDisabled ? Colors.grey[100] : Colors.grey[200]),
+            : (isDisabled 
+                ? (isDark ? Colors.grey[800] : Colors.grey[100])
+                : (isDark ? Colors.grey[700] : Colors.grey[200])),
         borderRadius: BorderRadius.circular(8),
         border: isToday
             ? Border.all(

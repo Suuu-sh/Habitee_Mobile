@@ -6,6 +6,7 @@ class HabitRecord {
   final List<DateTime> checkIns;
   final String memo;
   final Map<String, String> failureNotes;
+  final int order;
 
   HabitRecord({
     required this.id,
@@ -15,6 +16,7 @@ class HabitRecord {
     required this.checkIns,
     required this.memo,
     required this.failureNotes,
+    required this.order,
   });
 
   List<DateTime> get normalizedCheckIns {
@@ -42,6 +44,25 @@ class HabitRecord {
     return streak;
   }
 
+  int get longestStreak {
+    final start = _onlyDate(startDate);
+    final today = _onlyDate(DateTime.now());
+    if (today.isBefore(start)) return 0;
+    final failures = {for (final d in normalizedCheckIns) d.toIso8601String()};
+    int best = 0;
+    int current = 0;
+    for (var d = start; !d.isAfter(today); d = d.add(const Duration(days: 1))) {
+      if (failures.contains(d.toIso8601String())) {
+        if (current > best) best = current;
+        current = 0;
+      } else {
+        current += 1;
+      }
+    }
+    if (current > best) best = current;
+    return best;
+  }
+
   HabitRecord copyWith({
     List<DateTime>? checkIns,
     DateTime? startDate,
@@ -49,6 +70,7 @@ class HabitRecord {
     String? type,
     String? memo,
     Map<String, String>? failureNotes,
+    int? order,
   }) {
     return HabitRecord(
       id: id,
@@ -58,6 +80,7 @@ class HabitRecord {
       checkIns: checkIns ?? this.checkIns,
       memo: memo ?? this.memo,
       failureNotes: failureNotes ?? this.failureNotes,
+      order: order ?? this.order,
     );
   }
 
@@ -70,6 +93,7 @@ class HabitRecord {
         'checkIns': normalizedCheckIns.map((d) => d.toIso8601String()).toList(),
         'memo': memo,
         'failureNotes': failureNotes,
+        'order': order,
       };
 
   factory HabitRecord.fromJson(Map<String, dynamic> json) {
@@ -81,6 +105,7 @@ class HabitRecord {
     final rawNotes = json['failureNotes'] as Map<String, dynamic>? ?? {};
     final failureNotes = rawNotes.map((key, value) =>
         MapEntry(key, value == null ? '' : value.toString()));
+    final order = json['order'] as int? ?? 0;
 
     // 旧フォーマット(daysClean)からのマイグレーション
     if (json['checkIns'] == null && json['daysClean'] != null) {
@@ -98,6 +123,7 @@ class HabitRecord {
         checkIns: failures,
         memo: memo,
         failureNotes: failureNotes,
+        order: order,
       );
     }
 
@@ -116,6 +142,7 @@ class HabitRecord {
       checkIns: failures,
       memo: memo,
       failureNotes: failureNotes,
+      order: order,
     );
   }
 }

@@ -3,62 +3,96 @@ import 'screens/home_screen.dart';
 import 'screens/category_select_screen.dart';
 import 'screens/insight_screen.dart';
 import 'screens/history_screen.dart';
+import 'screens/settings_screen.dart';
 
 void main() {
   runApp(const HabiteeApp());
 }
 
-class HabiteeApp extends StatelessWidget {
+class HabiteeApp extends StatefulWidget {
   const HabiteeApp({super.key});
+
+  @override
+  State<HabiteeApp> createState() => _HabiteeAppState();
+}
+
+class _HabiteeAppState extends State<HabiteeApp> {
+  ThemeMode _themeMode = ThemeMode.light;
+
+  void _setThemeMode(ThemeMode mode) {
+    setState(() {
+      _themeMode = mode;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'habitee',
-      theme: ThemeData(
-        useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(
-          seedColor: const Color(0xFF7C4DFF),
-          brightness: Brightness.light,
-        ),
-        cardTheme: CardThemeData(
-          elevation: 0,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(20),
-          ),
-        ),
-        filledButtonTheme: FilledButtonThemeData(
-          style: FilledButton.styleFrom(
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(16),
-            ),
-            padding: const EdgeInsets.symmetric(vertical: 16),
-          ),
-        ),
-        inputDecorationTheme: InputDecorationTheme(
-          filled: true,
-          fillColor: Colors.white,
-          border: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
-            borderSide: BorderSide.none,
-          ),
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
-            borderSide: BorderSide(color: Colors.grey.shade200),
-          ),
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
-            borderSide: const BorderSide(color: Color(0xFF7C4DFF), width: 2),
-          ),
-        ),
+      themeMode: _themeMode,
+      theme: _buildTheme(Brightness.light),
+      darkTheme: _buildTheme(Brightness.dark),
+      home: MainShell(
+        themeMode: _themeMode,
+        onThemeModeChanged: _setThemeMode,
       ),
-      home: const MainShell(),
     );
   }
 }
 
+ThemeData _buildTheme(Brightness brightness) {
+  final isDark = brightness == Brightness.dark;
+  final scheme = ColorScheme.fromSeed(
+    seedColor: const Color(0xFF7C4DFF),
+    brightness: brightness,
+  );
+  return ThemeData(
+    useMaterial3: true,
+    colorScheme: scheme,
+    scaffoldBackgroundColor: isDark ? const Color(0xFF151515) : Colors.white,
+    cardTheme: CardThemeData(
+      elevation: 0,
+      color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(20),
+      ),
+    ),
+    filledButtonTheme: FilledButtonThemeData(
+      style: FilledButton.styleFrom(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(16),
+        ),
+        padding: const EdgeInsets.symmetric(vertical: 16),
+      ),
+    ),
+    inputDecorationTheme: InputDecorationTheme(
+      filled: true,
+      fillColor: isDark ? const Color(0xFF222222) : Colors.white,
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: BorderSide.none,
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: BorderSide(color: isDark ? Colors.grey.shade800 : Colors.grey.shade200),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: const BorderSide(color: Color(0xFF7C4DFF), width: 2),
+      ),
+    ),
+  );
+}
+
 class MainShell extends StatefulWidget {
-  const MainShell({super.key});
+  final ThemeMode themeMode;
+  final ValueChanged<ThemeMode> onThemeModeChanged;
+
+  const MainShell({
+    super.key,
+    required this.themeMode,
+    required this.onThemeModeChanged,
+  });
 
   @override
   State<MainShell> createState() => _MainShellState();
@@ -96,7 +130,7 @@ class _MainShellState extends State<MainShell> {
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: IndexedStack(
         index: _selectedIndex,
         children: [
@@ -106,7 +140,10 @@ class _MainShellState extends State<MainShell> {
           ),
           const InsightScreen(),
           HistoryScreen(refreshListenable: _historyTick),
-          const _PlaceholderScreen(label: 'Settings', emoji: '⚙️'),
+          SettingsScreen(
+            themeMode: widget.themeMode,
+            onThemeModeChanged: widget.onThemeModeChanged,
+          ),
         ],
       ),
       floatingActionButton: Transform.translate(
@@ -142,17 +179,21 @@ class _MainShellState extends State<MainShell> {
       bottomNavigationBar: BottomAppBar(
         shape: const CircularNotchedRectangle(),
         notchMargin: 6,
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         child: Builder(
           builder: (context) {
             final bottomInset = MediaQuery.of(context).padding.bottom;
+            final isDark = Theme.of(context).brightness == Brightness.dark;
             return Container(
               height: 48 + bottomInset,
               padding: EdgeInsets.only(bottom: bottomInset),
               decoration: BoxDecoration(
+                color: Theme.of(context).cardColor,
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
+                    color: isDark 
+                        ? Colors.black.withOpacity(0.3)
+                        : Colors.black.withOpacity(0.05),
                     blurRadius: 10,
                     offset: const Offset(0, -2),
                   ),
@@ -210,7 +251,8 @@ class _NavItem extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = active ? activeColor : Colors.grey[400];
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final color = active ? activeColor : (isDark ? Colors.grey[600] : Colors.grey[400]);
     return Expanded(
       child: InkResponse(
         onTap: onTap,
