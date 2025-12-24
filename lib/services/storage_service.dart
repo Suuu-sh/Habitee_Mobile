@@ -1,12 +1,10 @@
 import 'dart:convert';
-import 'dart:math';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/habit_type.dart';
 
 class StorageService {
   static const String _recordsKey = 'habitee_records';
   static const String _legacyRecordsKey = 'addiction_records';
-  static const String _collectionKey = 'collected_characters';
 
   Future<List<HabitRecord>> getRecords() async {
     final prefs = await SharedPreferences.getInstance();
@@ -18,60 +16,110 @@ class StorageService {
             .map((json) => HabitRecord.fromJson(json))
             .toList();
 
-    final processed = await _processRecords(records, prefs);
+    final normalized = _normalizeOrder(records);
     if (prefs.containsKey(_legacyRecordsKey)) {
-      await _saveRecordsInternal(processed, prefs);
+      await _saveRecordsInternal(normalized, prefs);
       await prefs.remove(_legacyRecordsKey);
+    } else if (!_sameOrder(records, normalized)) {
+      await _saveRecordsInternal(normalized, prefs);
     }
-    return processed;
+    return normalized;
   }
 
-  Future<List<CollectedCharacter>> getCollection() async {
-    final prefs = await SharedPreferences.getInstance();
-    final jsonString = prefs.getString(_collectionKey);
-    if (jsonString == null) return [];
-    return (json.decode(jsonString) as List<dynamic>)
-        .map((json) => CollectedCharacter.fromJson(json))
-        .toList();
-  }
-
-  Future<void> addRecord(HabitType type) async {
+  Future<void> addRecord(String type, int color) async {
     final prefs = await SharedPreferences.getInstance();
     final records = await getRecords();
-    final kind = CharacterKind.values[Random().nextInt(CharacterKind.values.length)];
     final newRecord = HabitRecord(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
       type: type,
-      characterKind: kind,
+      color: color,
       startDate: DateTime.now(),
       checkIns: [],
+      memo: '',
+      failureNotes: {},
+      order: records.length,
     );
 
     records.add(newRecord);
     await _saveRecordsInternal(records, prefs);
   }
 
+  Future<void> updateRecord(
+    String recordId, {
+    String? type,
+    int? color,
+    String? memo,
+    DateTime? startDate,
+  }) async {
+    final prefs = await SharedPreferences.getInstance();
+    final records = await getRecords();
+    final index = records.indexWhere((r) => r.id == recordId);
+    if (index == -1) return;
+
+    final target = records[index];
+    records[index] = target.copyWith(
+      type: type,
+      color: color,
+      memo: memo,
+      startDate: startDate,
+    );
+
+    await _saveRecordsInternal(records, prefs);
+  }
+
+  Future<void> deleteRecord(String recordId) async {
+    final prefs = await SharedPreferences.getInstance();
+    final records = await getRecords();
+    records.removeWhere((r) => r.id == recordId);
+    await _saveRecordsInternal(records, prefs);
+  }
+
+  Future<void> updateOrder(List<HabitRecord> ordered) async {
+    final prefs = await SharedPreferences.getInstance();
+    final updated = <HabitRecord>[];
+    for (int i = 0; i < ordered.length; i++) {
+      updated.add(ordered[i].copyWith(order: i));
+    }
+    await _saveRecordsInternal(updated, prefs);
+  }
+
   Future<void> checkIn(String recordId, {DateTime? date}) async {
+    await toggleFailure(recordId, date ?? DateTime.now(), comment: '');
+  }
+
+  Future<void> toggleFailure(
+    String recordId,
+    DateTime date, {
+    required String comment,
+  }) async {
     final prefs = await SharedPreferences.getInstance();
     final records = await getRecords();
     final targetIndex = records.indexWhere((r) => r.id == recordId);
     if (targetIndex == -1) return;
 
     final target = records[targetIndex];
-    final today = _onlyDate(date ?? DateTime.now());
+    final day = _onlyDate(date);
     final updatedList = List<DateTime>.from(target.checkIns);
-    final alreadyChecked = target.normalizedCheckIns.any((d) => _isSameDay(d, today));
-    if (!alreadyChecked) {
-      updatedList.add(today);
+    final updatedNotes = Map<String, String>.from(target.failureNotes);
+    final alreadyFailed =
+        target.normalizedCheckIns.any((d) => _isSameDay(d, day));
+    if (alreadyFailed) {
+      updatedList.removeWhere((d) => _isSameDay(d, day));
+      updatedNotes.remove(day.toIso8601String());
+    } else {
+      updatedList.add(day);
+      if (comment.isNotEmpty) {
+        updatedNotes[day.toIso8601String()] = comment;
+      }
     }
 
     records[targetIndex] = target.copyWith(
       checkIns: updatedList,
       startDate: target.startDate,
+      failureNotes: updatedNotes,
     );
 
-    final processed = await _processRecords(records, prefs);
-    await _saveRecordsInternal(processed, prefs);
+    await _saveRecordsInternal(records, prefs);
   }
 
   Future<void> _saveRecordsInternal(
@@ -80,61 +128,23 @@ class StorageService {
     await prefs.setString(_recordsKey, jsonString);
   }
 
-  Future<void> _saveCollectionInternal(
-      List<CollectedCharacter> collection, SharedPreferences prefs) async {
-    final jsonString = json.encode(collection.map((c) => c.toJson()).toList());
-    await prefs.setString(_collectionKey, jsonString);
+}
+
+List<HabitRecord> _normalizeOrder(List<HabitRecord> records) {
+  final sorted = List<HabitRecord>.from(records)
+    ..sort((a, b) => a.order.compareTo(b.order));
+  for (int i = 0; i < sorted.length; i++) {
+    sorted[i] = sorted[i].copyWith(order: i);
   }
+  return sorted;
+}
 
-  Future<List<HabitRecord>> _processRecords(
-    List<HabitRecord> records,
-    SharedPreferences prefs,
-  ) async {
-    final updated = <HabitRecord>[];
-    final collection = await getCollection();
-    bool changed = false;
-
-    for (final record in records) {
-      int? stageToCollect;
-
-      if (record.isCleared) {
-        stageToCollect = 3;
-      } else if (record.hasBrokenStreak) {
-        final completedWeeks = record.completedWeeks;
-        if (completedWeeks > 0) {
-          stageToCollect = (completedWeeks - 1).clamp(0, 3);
-        }
-      }
-
-      if (stageToCollect != null) {
-        collection.add(
-          CollectedCharacter(
-            id: '${record.id}-${DateTime.now().millisecondsSinceEpoch}',
-            type: record.type,
-            characterKind: record.characterKind,
-            stageIndex: stageToCollect,
-            collectedAt: DateTime.now(),
-          ),
-        );
-        updated.add(
-          record.copyWith(
-            checkIns: [],
-            startDate: DateTime.now(),
-          ),
-        );
-        changed = true;
-      } else {
-        updated.add(record);
-      }
-    }
-
-    if (changed) {
-      await _saveRecordsInternal(updated, prefs);
-      await _saveCollectionInternal(collection, prefs);
-    }
-
-    return updated;
+bool _sameOrder(List<HabitRecord> a, List<HabitRecord> b) {
+  if (a.length != b.length) return false;
+  for (int i = 0; i < a.length; i++) {
+    if (a[i].id != b[i].id || a[i].order != b[i].order) return false;
   }
+  return true;
 }
 
 bool _isSameDay(DateTime a, DateTime b) {
