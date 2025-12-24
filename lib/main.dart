@@ -129,6 +129,8 @@ class _MainShellState extends State<MainShell> {
   @override
   Widget build(BuildContext context) {
     final colorScheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
       body: IndexedStack(
@@ -146,90 +148,107 @@ class _MainShellState extends State<MainShell> {
           ),
         ],
       ),
-      floatingActionButton: Transform.translate(
-        offset: const Offset(0, 16),
+      floatingActionButton: TweenAnimationBuilder<double>(
+        duration: const Duration(milliseconds: 300),
+        tween: Tween(begin: 0.0, end: 1.0),
+        builder: (context, value, child) {
+          return Transform.scale(
+            scale: 0.85 + (value * 0.15),
+            child: child,
+          );
+        },
         child: Container(
-          width: 50,
-          height: 50,
+          width: 60,
+          height: 60,
           decoration: BoxDecoration(
             gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
               colors: [
                 colorScheme.primary,
                 colorScheme.secondary,
               ],
             ),
-            borderRadius: BorderRadius.circular(14),
+            borderRadius: BorderRadius.circular(18),
             boxShadow: [
               BoxShadow(
-                color: colorScheme.primary.withOpacity(0.35),
-                blurRadius: 8,
-                offset: const Offset(0, 3),
+                color: colorScheme.primary.withOpacity(0.4),
+                blurRadius: 16,
+                offset: const Offset(0, 6),
+                spreadRadius: 0,
               ),
             ],
           ),
-          child: FloatingActionButton(
-            onPressed: _openAddTask,
-            backgroundColor: Colors.transparent,
-            elevation: 0,
-            child: const Icon(Icons.add, size: 24),
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: _openAddTask,
+              borderRadius: BorderRadius.circular(18),
+              child: const Center(
+                child: Icon(
+                  Icons.add_rounded,
+                  color: Colors.white,
+                  size: 32,
+                ),
+              ),
+            ),
           ),
         ),
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-      bottomNavigationBar: BottomAppBar(
-        shape: const CircularNotchedRectangle(),
-        notchMargin: 6,
-        color: Theme.of(context).cardColor,
-        child: Builder(
-          builder: (context) {
-            final bottomInset = MediaQuery.of(context).padding.bottom;
-            final isDark = Theme.of(context).brightness == Brightness.dark;
-            return Container(
-              height: 48 + bottomInset,
-              padding: EdgeInsets.only(bottom: bottomInset),
-              decoration: BoxDecoration(
-                color: Theme.of(context).cardColor,
-                boxShadow: [
-                  BoxShadow(
-                    color: isDark 
-                        ? Colors.black.withOpacity(0.3)
-                        : Colors.black.withOpacity(0.05),
-                    blurRadius: 10,
-                    offset: const Offset(0, -2),
-                  ),
-                ],
-              ),
+      bottomNavigationBar: Container(
+        decoration: BoxDecoration(
+          boxShadow: [
+            BoxShadow(
+              color: isDark
+                  ? Colors.black.withOpacity(0.3)
+                  : colorScheme.primary.withOpacity(0.05),
+              blurRadius: 20,
+              offset: const Offset(0, -5),
+              spreadRadius: 0,
+            ),
+          ],
+        ),
+        child: ClipRRect(
+          borderRadius: const BorderRadius.vertical(
+            top: Radius.circular(24),
+          ),
+          child: BottomAppBar(
+            height: 60 + MediaQuery.of(context).padding.bottom,
+            color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+            shape: const CircularNotchedRectangle(),
+            notchMargin: 10,
+            elevation: 0,
+            child: Padding(
+              padding: EdgeInsets.only(bottom: MediaQuery.of(context).padding.bottom),
               child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
                   _NavItem(
                     icon: Icons.home_rounded,
                     active: _selectedIndex == 0,
-                    activeColor: colorScheme.primary,
                     onTap: () => _onTabSelected(0),
                   ),
                   _NavItem(
                     icon: Icons.insights_rounded,
                     active: _selectedIndex == 1,
-                    activeColor: colorScheme.primary,
                     onTap: () => _onTabSelected(1),
                   ),
                   const SizedBox(width: 56),
                   _NavItem(
                     icon: Icons.history_rounded,
                     active: _selectedIndex == 2,
-                    activeColor: colorScheme.primary,
                     onTap: () => _onTabSelected(2),
                   ),
                   _NavItem(
                     icon: Icons.settings_rounded,
                     active: _selectedIndex == 3,
-                    activeColor: colorScheme.primary,
                     onTap: () => _onTabSelected(3),
                   ),
                 ],
               ),
-            );
-          },
+            ),
+          ),
         ),
       ),
     );
@@ -239,35 +258,57 @@ class _MainShellState extends State<MainShell> {
 class _NavItem extends StatelessWidget {
   final IconData icon;
   final bool active;
-  final Color activeColor;
   final VoidCallback onTap;
 
   const _NavItem({
     required this.icon,
     required this.active,
-    required this.activeColor,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
     final isDark = Theme.of(context).brightness == Brightness.dark;
-    final color = active ? activeColor : (isDark ? Colors.grey[600] : Colors.grey[400]);
+
     return Expanded(
-      child: InkResponse(
-        onTap: onTap,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 200),
-          padding: const EdgeInsets.symmetric(vertical: 0),
-          child: Center(
-            child: AnimatedContainer(
-              duration: const Duration(milliseconds: 200),
-              padding: const EdgeInsets.all(6),
-              decoration: BoxDecoration(
-                color: active ? activeColor.withOpacity(0.1) : Colors.transparent,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: Icon(icon, color: color, size: 24),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(16),
+          splashColor: colorScheme.primary.withOpacity(0.1),
+          highlightColor: colorScheme.primary.withOpacity(0.05),
+          child: AnimatedContainer(
+            duration: const Duration(milliseconds: 200),
+            padding: const EdgeInsets.symmetric(vertical: 6),
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    gradient: active
+                        ? LinearGradient(
+                            colors: [
+                              colorScheme.primary.withOpacity(0.15),
+                              colorScheme.secondary.withOpacity(0.15),
+                            ],
+                          )
+                        : null,
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Icon(
+                    icon,
+                    size: 26,
+                    color: active
+                        ? colorScheme.primary
+                        : (isDark ? Colors.grey[500] : Colors.grey[600]),
+                  ),
+                ),
+              ],
             ),
           ),
         ),
