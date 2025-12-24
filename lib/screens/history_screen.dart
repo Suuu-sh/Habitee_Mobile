@@ -372,110 +372,174 @@ extension on _HistoryScreenState {
     String? tempTask = _selectedTask;
     DateTime? tempStart = _rangeStart;
     DateTime? tempEnd = _rangeEnd;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final colorScheme = Theme.of(context).colorScheme;
 
     final result = await showModalBottomSheet<bool>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.white,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
+      backgroundColor: Colors.transparent,
       builder: (context) {
         return StatefulBuilder(
           builder: (context, setModalState) {
-            return Padding(
-              padding: EdgeInsets.only(
-                left: 20,
-                right: 20,
-                top: 16,
-                bottom: MediaQuery.of(context).viewInsets.bottom + 20,
-              ),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Center(
-                    child: Container(
-                      width: 44,
-                      height: 4,
-                      decoration: BoxDecoration(
-                        color: Colors.grey[300],
-                        borderRadius: BorderRadius.circular(2),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(height: 16),
-                  const Text(
-                    'フィルター',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700),
-                  ),
-                  const SizedBox(height: 16),
-                  const Text('タスク'),
-                  const SizedBox(height: 8),
-                  DropdownButtonFormField<String?>(
-                    value: tempTask,
-                    decoration: const InputDecoration(
-                      border: OutlineInputBorder(),
-                    ),
-                    items: [
-                      const DropdownMenuItem<String?>(
-                        value: null,
-                        child: Text('すべて'),
-                      ),
-                      ..._taskOptions.map(
-                        (task) => DropdownMenuItem<String?>(
-                          value: task,
-                          child: Text(task),
-                        ),
-                      ),
-                    ],
-                    onChanged: (value) {
-                      setModalState(() => tempTask = value);
-                    },
-                  ),
-                  const SizedBox(height: 16),
-                  const Text('期間'),
-                  const SizedBox(height: 8),
-                  OutlinedButton(
-                    onPressed: () async {
-                      final picked = await showDateRangePicker(
-                        context: context,
-                        firstDate: DateTime(2000),
-                        lastDate: DateTime.now(),
-                        initialDateRange: tempStart != null && tempEnd != null
-                            ? DateTimeRange(start: tempStart!, end: tempEnd!)
-                            : null,
-                      );
-                      if (picked != null) {
-                        setModalState(() {
-                          tempStart = picked.start;
-                          tempEnd = picked.end;
-                        });
-                      }
-                    },
-                    child: Text(_formatRange(tempStart, tempEnd)),
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      TextButton(
-                        onPressed: () {
-                          setModalState(() {
-                            tempTask = null;
-                            tempStart = null;
-                            tempEnd = null;
-                          });
-                        },
-                        child: const Text('クリア'),
-                      ),
-                      const Spacer(),
-                      FilledButton(
-                        onPressed: () => Navigator.pop(context, true),
-                        child: const Text('適用'),
-                      ),
-                    ],
+            return Container(
+              decoration: BoxDecoration(
+                color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(isDark ? 0.5 : 0.2),
+                    blurRadius: 30,
+                    offset: const Offset(0, -10),
                   ),
                 ],
+              ),
+              child: Padding(
+                padding: EdgeInsets.only(
+                  left: 24,
+                  right: 24,
+                  top: 20,
+                  bottom: MediaQuery.of(context).viewInsets.bottom + 24,
+                ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Center(
+                      child: Container(
+                        width: 40,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: isDark ? Colors.grey[700] : Colors.grey[300],
+                          borderRadius: BorderRadius.circular(2),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    Row(
+                      children: [
+                        Container(
+                          padding: const EdgeInsets.all(10),
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              colors: [colorScheme.primary, colorScheme.secondary],
+                            ),
+                            borderRadius: BorderRadius.circular(14),
+                          ),
+                          child: const Icon(
+                            Icons.filter_list_rounded,
+                            color: Colors.white,
+                            size: 24,
+                          ),
+                        ),
+                        const SizedBox(width: 14),
+                        const Text(
+                          'フィルター',
+                          style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: 28),
+                    Text(
+                      'タスク',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: isDark ? Colors.grey[300] : Colors.grey[800],
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    DropdownButtonFormField<String?>(
+                      value: tempTask,
+                      decoration: InputDecoration(
+                        filled: true,
+                        fillColor: isDark ? Colors.grey[850] : Colors.grey[50],
+                      ),
+                      items: [
+                        const DropdownMenuItem<String?>(
+                          value: null,
+                          child: Text('すべて'),
+                        ),
+                        ..._taskOptions.map(
+                          (task) => DropdownMenuItem<String?>(
+                            value: task,
+                            child: Text(task),
+                          ),
+                        ),
+                      ],
+                      onChanged: (value) {
+                        setModalState(() => tempTask = value);
+                      },
+                    ),
+                    const SizedBox(height: 24),
+                    Text(
+                      '期間',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        color: isDark ? Colors.grey[300] : Colors.grey[800],
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    OutlinedButton.icon(
+                      onPressed: () async {
+                        final picked = await showDateRangePicker(
+                          context: context,
+                          firstDate: DateTime(2000),
+                          lastDate: DateTime.now(),
+                          initialDateRange: tempStart != null && tempEnd != null
+                              ? DateTimeRange(start: tempStart!, end: tempEnd!)
+                              : null,
+                        );
+                        if (picked != null) {
+                          setModalState(() {
+                            tempStart = picked.start;
+                            tempEnd = picked.end;
+                          });
+                        }
+                      },
+                      icon: Icon(Icons.calendar_month_rounded, color: colorScheme.primary),
+                      label: Text(_formatRange(tempStart, tempEnd)),
+                      style: OutlinedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+                        side: BorderSide(
+                          color: isDark ? Colors.grey[700]! : Colors.grey[300]!,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 28),
+                    Row(
+                      children: [
+                        Expanded(
+                          child: OutlinedButton(
+                            onPressed: () {
+                              setModalState(() {
+                                tempTask = null;
+                                tempStart = null;
+                                tempEnd = null;
+                              });
+                            },
+                            style: OutlinedButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                            ),
+                            child: const Text('クリア'),
+                          ),
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          flex: 2,
+                          child: FilledButton(
+                            onPressed: () => Navigator.pop(context, true),
+                            style: FilledButton.styleFrom(
+                              padding: const EdgeInsets.symmetric(vertical: 16),
+                            ),
+                            child: const Text('適用'),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
               ),
             );
           },

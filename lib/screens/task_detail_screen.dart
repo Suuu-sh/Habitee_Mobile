@@ -52,51 +52,64 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
   }
 
   Future<void> _delete() async {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     final shouldDelete = await showDialog<bool>(
       context: context,
       builder: (context) {
         return AlertDialog(
+          backgroundColor: isDark ? const Color(0xFF1E1E1E) : Colors.white,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(24),
+            borderRadius: BorderRadius.circular(28),
           ),
           title: Row(
             children: [
               Container(
-                padding: const EdgeInsets.all(8),
+                padding: const EdgeInsets.all(10),
                 decoration: BoxDecoration(
-                  color: Colors.red.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(12),
+                  color: Colors.red.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(14),
                 ),
                 child: const Icon(
                   Icons.delete_rounded,
                   color: Colors.red,
-                  size: 24,
+                  size: 26,
                 ),
               ),
-              const SizedBox(width: 12),
+              const SizedBox(width: 14),
               const Expanded(
                 child: Text(
                   'タスクを削除',
-                  style: TextStyle(fontSize: 20),
+                  style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
                 ),
               ),
             ],
           ),
-          content: const Text(
+          content: Text(
             'この操作は取り消せません。\n本当に削除しますか？',
-            style: TextStyle(fontSize: 15),
+            style: TextStyle(
+              fontSize: 16,
+              color: isDark ? Colors.grey[400] : Colors.grey[700],
+            ),
           ),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context, false),
-              child: const Text('キャンセル'),
+              style: TextButton.styleFrom(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
+              ),
+              child: const Text('キャンセル', style: TextStyle(fontSize: 16)),
             ),
             FilledButton(
               onPressed: () => Navigator.pop(context, true),
               style: FilledButton.styleFrom(
                 backgroundColor: Colors.red,
+                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
               ),
-              child: const Text('削除'),
+              child: const Text('削除', style: TextStyle(fontSize: 16)),
             ),
           ],
         );
@@ -135,9 +148,10 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
   Widget build(BuildContext context) {
     final canSave = _controller.text.trim().isNotEmpty;
     final colorScheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     
     return Scaffold(
-      backgroundColor: Colors.grey[50],
+      backgroundColor: isDark ? Theme.of(context).scaffoldBackgroundColor : Colors.grey[50],
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -162,7 +176,7 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
             decoration: BoxDecoration(
               gradient: LinearGradient(
                 colors: [
-                  Color(_selectedColor).withOpacity(0.1),
+                  Color(_selectedColor).withOpacity(0.15),
                   Color(_selectedColor).withOpacity(0.05),
                 ],
               ),
@@ -185,9 +199,11 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
               child: Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
-                  color: Colors.white,
+                  color: isDark ? Colors.grey[850] : Colors.white,
                   borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Colors.grey.shade200),
+                  border: Border.all(
+                    color: isDark ? Colors.grey[700]! : Colors.grey.shade200,
+                  ),
                 ),
                 child: Row(
                   children: [
@@ -207,7 +223,7 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
                     Icon(
                       Icons.arrow_forward_ios_rounded,
                       size: 16,
-                      color: Colors.grey[400],
+                      color: isDark ? Colors.grey[600] : Colors.grey[400],
                     ),
                   ],
                 ),
@@ -251,27 +267,27 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
             child: Padding(
               padding: const EdgeInsets.only(top: 8),
               child: Wrap(
-                spacing: 12,
-                runSpacing: 12,
+                spacing: 14,
+                runSpacing: 14,
                 children: taskColors.map((color) {
                   final isSelected = _selectedColor == color.value;
                   return GestureDetector(
                     onTap: () => setState(() => _selectedColor = color.value),
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 200),
-                      width: 48,
-                      height: 48,
+                      width: 52,
+                      height: 52,
                       decoration: BoxDecoration(
                         color: color,
-                        borderRadius: BorderRadius.circular(14),
+                        borderRadius: BorderRadius.circular(16),
                         border: Border.all(
                           color: isSelected ? Colors.white : Colors.transparent,
                           width: 3,
                         ),
                         boxShadow: [
                           BoxShadow(
-                            color: color.withOpacity(isSelected ? 0.5 : 0.2),
-                            blurRadius: isSelected ? 12 : 6,
+                            color: color.withOpacity(isSelected ? 0.6 : 0.3),
+                            blurRadius: isSelected ? 16 : 8,
                             offset: const Offset(0, 4),
                           ),
                         ],
@@ -280,7 +296,7 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
                           ? const Icon(
                               Icons.check_rounded,
                               color: Colors.white,
-                              size: 24,
+                              size: 28,
                             )
                           : null,
                     ),
@@ -295,18 +311,18 @@ class _TaskDetailScreenState extends State<TaskDetailScreen> {
             style: FilledButton.styleFrom(
               padding: const EdgeInsets.symmetric(vertical: 18),
               shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(16),
+                borderRadius: BorderRadius.circular(18),
               ),
             ),
             child: const Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                Icon(Icons.check_circle_rounded),
-                SizedBox(width: 8),
+                Icon(Icons.check_circle_rounded, size: 24),
+                SizedBox(width: 10),
                 Text(
                   '保存',
                   style: TextStyle(
-                    fontSize: 16,
+                    fontSize: 17,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
@@ -334,14 +350,16 @@ class _SectionCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: Theme.of(context).cardColor,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: iconColor.withOpacity(0.1),
+            color: iconColor.withOpacity(isDark ? 0.2 : 0.1),
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),
@@ -355,8 +373,8 @@ class _SectionCard extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.all(8),
                 decoration: BoxDecoration(
-                  color: iconColor.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(10),
+                  color: iconColor.withOpacity(0.15),
+                  borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(
                   icon,
@@ -370,7 +388,7 @@ class _SectionCard extends StatelessWidget {
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
-                  color: Colors.grey[800],
+                  color: isDark ? Colors.grey[300] : Colors.grey[800],
                 ),
               ),
             ],

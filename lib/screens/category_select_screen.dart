@@ -49,6 +49,7 @@ class _CategorySelectScreenState extends State<CategorySelectScreen> with Single
   Widget build(BuildContext context) {
     final canSubmit = _controller.text.trim().isNotEmpty;
     final colorScheme = Theme.of(context).colorScheme;
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     
     return GestureDetector(
       onTap: () => Navigator.pop(context),
@@ -65,13 +66,13 @@ class _CategorySelectScreenState extends State<CategorySelectScreen> with Single
                   maxHeight: MediaQuery.of(context).size.height * 0.85,
                 ),
                 decoration: BoxDecoration(
-                  color: Colors.grey[50],
-                  borderRadius: const BorderRadius.vertical(top: Radius.circular(28)),
+                  color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
+                  borderRadius: const BorderRadius.vertical(top: Radius.circular(32)),
                   boxShadow: [
                     BoxShadow(
-                      color: Colors.black.withOpacity(0.2),
-                      blurRadius: 20,
-                      offset: const Offset(0, -5),
+                      color: Colors.black.withOpacity(isDark ? 0.5 : 0.2),
+                      blurRadius: 30,
+                      offset: const Offset(0, -10),
                     ),
                   ],
                 ),
@@ -92,16 +93,16 @@ class _CategorySelectScreenState extends State<CategorySelectScreen> with Single
                             width: 40,
                             height: 4,
                             decoration: BoxDecoration(
-                              color: Colors.grey[300],
+                              color: isDark ? Colors.grey[700] : Colors.grey[300],
                               borderRadius: BorderRadius.circular(2),
                             ),
                           ),
                         ),
-                        const SizedBox(height: 24),
+                        const SizedBox(height: 28),
                         Row(
                           children: [
                             Container(
-                              padding: const EdgeInsets.all(12),
+                              padding: const EdgeInsets.all(14),
                               decoration: BoxDecoration(
                                 gradient: LinearGradient(
                                   colors: [
@@ -109,7 +110,14 @@ class _CategorySelectScreenState extends State<CategorySelectScreen> with Single
                                     colorScheme.secondary,
                                   ],
                                 ),
-                                borderRadius: BorderRadius.circular(16),
+                                borderRadius: BorderRadius.circular(18),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: colorScheme.primary.withOpacity(0.3),
+                                    blurRadius: 12,
+                                    offset: const Offset(0, 4),
+                                  ),
+                                ],
                               ),
                               child: const Icon(
                                 Icons.add_task_rounded,
@@ -135,7 +143,7 @@ class _CategorySelectScreenState extends State<CategorySelectScreen> with Single
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
-                            color: Colors.grey[800],
+                            color: isDark ? Colors.grey[300] : Colors.grey[800],
                           ),
                         ),
                         const SizedBox(height: 12),
@@ -148,8 +156,6 @@ class _CategorySelectScreenState extends State<CategorySelectScreen> with Single
                               Icons.edit_rounded,
                               color: colorScheme.primary,
                             ),
-                            filled: true,
-                            fillColor: Colors.white,
                           ),
                           textInputAction: TextInputAction.done,
                           onSubmitted: (_) => _submit(),
@@ -161,32 +167,34 @@ class _CategorySelectScreenState extends State<CategorySelectScreen> with Single
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.w600,
-                            color: Colors.grey[800],
+                            color: isDark ? Colors.grey[300] : Colors.grey[800],
                           ),
                         ),
-                        const SizedBox(height: 12),
+                        const SizedBox(height: 16),
                         Wrap(
-                          spacing: 12,
-                          runSpacing: 12,
+                          spacing: 14,
+                          runSpacing: 14,
                           children: taskColors.map((color) {
                             final isSelected = _selectedColor == color.value;
                             return GestureDetector(
                               onTap: () => setState(() => _selectedColor = color.value),
                               child: AnimatedContainer(
                                 duration: const Duration(milliseconds: 200),
-                                width: 48,
-                                height: 48,
+                                width: 52,
+                                height: 52,
                                 decoration: BoxDecoration(
                                   color: color,
-                                  borderRadius: BorderRadius.circular(14),
+                                  borderRadius: BorderRadius.circular(16),
                                   border: Border.all(
-                                    color: isSelected ? Colors.white : Colors.transparent,
+                                    color: isSelected 
+                                        ? (isDark ? Colors.white : Colors.white)
+                                        : Colors.transparent,
                                     width: 3,
                                   ),
                                   boxShadow: [
                                     BoxShadow(
-                                      color: color.withOpacity(isSelected ? 0.5 : 0.2),
-                                      blurRadius: isSelected ? 12 : 6,
+                                      color: color.withOpacity(isSelected ? 0.6 : 0.3),
+                                      blurRadius: isSelected ? 16 : 8,
                                       offset: const Offset(0, 4),
                                     ),
                                   ],
@@ -195,14 +203,14 @@ class _CategorySelectScreenState extends State<CategorySelectScreen> with Single
                                     ? const Icon(
                                         Icons.check_rounded,
                                         color: Colors.white,
-                                        size: 24,
+                                        size: 28,
                                       )
                                     : null,
                               ),
                             );
                           }).toList(),
                         ),
-                        const SizedBox(height: 32),
+                        const SizedBox(height: 36),
                         SizedBox(
                           width: double.infinity,
                           child: FilledButton(
@@ -210,18 +218,18 @@ class _CategorySelectScreenState extends State<CategorySelectScreen> with Single
                             style: FilledButton.styleFrom(
                               padding: const EdgeInsets.symmetric(vertical: 18),
                               shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(16),
+                                borderRadius: BorderRadius.circular(18),
                               ),
                             ),
                             child: const Row(
                               mainAxisAlignment: MainAxisAlignment.center,
                               children: [
-                                Icon(Icons.check_circle_rounded),
-                                SizedBox(width: 8),
+                                Icon(Icons.check_circle_rounded, size: 24),
+                                SizedBox(width: 10),
                                 Text(
                                   '追加する',
                                   style: TextStyle(
-                                    fontSize: 16,
+                                    fontSize: 17,
                                     fontWeight: FontWeight.w600,
                                   ),
                                 ),

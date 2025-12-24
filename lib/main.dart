@@ -102,6 +102,19 @@ class _MainShellState extends State<MainShell> {
   int _selectedIndex = 0;
   int _refreshToken = 0;
   final ValueNotifier<int> _historyTick = ValueNotifier<int>(0);
+  late PageController _pageController;
+
+  @override
+  void initState() {
+    super.initState();
+    _pageController = PageController();
+  }
+
+  @override
+  void dispose() {
+    _pageController.dispose();
+    super.dispose();
+  }
 
   Future<void> _openAddTask() async {
     await showModalBottomSheet(
@@ -120,7 +133,7 @@ class _MainShellState extends State<MainShell> {
     _historyTick.value += 1;
   }
 
-  void _onTabSelected(int index) {
+  void _onPageChanged(int index) {
     setState(() {
       _selectedIndex = index;
     });
@@ -133,237 +146,151 @@ class _MainShellState extends State<MainShell> {
     
     return Scaffold(
       backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-      body: IndexedStack(
-        index: _selectedIndex,
+      body: Stack(
         children: [
-          HomeScreen(
-            refreshToken: _refreshToken,
-            onFailureRecorded: _notifyHistoryUpdate,
-          ),
-          const InsightScreen(),
-          HistoryScreen(refreshListenable: _historyTick),
-          SettingsScreen(
-            themeMode: widget.themeMode,
-            onThemeModeChanged: widget.onThemeModeChanged,
-          ),
-        ],
-      ),
-      floatingActionButton: TweenAnimationBuilder<double>(
-        duration: const Duration(milliseconds: 300),
-        tween: Tween(begin: 0.0, end: 1.0),
-        builder: (context, value, child) {
-          return Transform.scale(
-            scale: 0.85 + (value * 0.15),
-            child: child,
-          );
-        },
-        child: Container(
-          width: 60,
-          height: 60,
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                colorScheme.primary,
-                colorScheme.secondary,
-              ],
-            ),
-            borderRadius: BorderRadius.circular(18),
-            boxShadow: [
-              BoxShadow(
-                color: colorScheme.primary.withOpacity(0.4),
-                blurRadius: 16,
-                offset: const Offset(0, 6),
-                spreadRadius: 0,
+          PageView(
+            controller: _pageController,
+            onPageChanged: _onPageChanged,
+            children: [
+              HomeScreen(
+                refreshToken: _refreshToken,
+                onFailureRecorded: _notifyHistoryUpdate,
+              ),
+              const InsightScreen(),
+              HistoryScreen(refreshListenable: _historyTick),
+              SettingsScreen(
+                themeMode: widget.themeMode,
+                onThemeModeChanged: widget.onThemeModeChanged,
               ),
             ],
           ),
-          child: Material(
-            color: Colors.transparent,
-            child: InkWell(
-              onTap: _openAddTask,
-              borderRadius: BorderRadius.circular(18),
-              child: const Center(
-                child: Icon(
-                  Icons.add_rounded,
-                  color: Colors.white,
-                  size: 32,
+          // Page Indicator
+          Positioned(
+            top: 0,
+            left: 0,
+            right: 0,
+            child: SafeArea(
+              child: Container(
+                height: 50,
+                padding: const EdgeInsets.symmetric(horizontal: 20),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    _PageIndicator(
+                      count: 4,
+                      currentIndex: _selectedIndex,
+                      activeColor: colorScheme.primary,
+                      inactiveColor: isDark ? Colors.grey[700]! : Colors.grey[300]!,
+                    ),
+                  ],
                 ),
               ),
             ),
           ),
-        ),
-      ),
-      floatingActionButtonLocation: FloatingActionButtonLocation.centerDocked,
-      bottomNavigationBar: Container(
-        decoration: BoxDecoration(
-          boxShadow: [
-            BoxShadow(
-              color: isDark
-                  ? Colors.black.withOpacity(0.3)
-                  : colorScheme.primary.withOpacity(0.05),
-              blurRadius: 20,
-              offset: const Offset(0, -5),
-              spreadRadius: 0,
-            ),
-          ],
-        ),
-        child: ClipRRect(
-          borderRadius: const BorderRadius.vertical(
-            top: Radius.circular(24),
-          ),
-          child: BottomAppBar(
-            height: 60 + MediaQuery.of(context).padding.bottom,
-            color: isDark ? const Color(0xFF1E1E1E) : Colors.white,
-            shape: const CircularNotchedRectangle(),
-            notchMargin: 10,
-            elevation: 0,
-            child: Padding(
-              padding: EdgeInsets.only(bottom: MediaQuery.of(context).padding.bottom),
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: [
-                  _NavItem(
-                    icon: Icons.home_rounded,
-                    active: _selectedIndex == 0,
-                    onTap: () => _onTabSelected(0),
+          // FAB for Home page only
+          if (_selectedIndex == 0)
+            Positioned(
+              right: 20,
+              bottom: 30,
+              child: TweenAnimationBuilder<double>(
+                duration: const Duration(milliseconds: 300),
+                tween: Tween(begin: 0.0, end: 1.0),
+                builder: (context, value, child) {
+                  return Transform.scale(
+                    scale: 0.8 + (value * 0.2),
+                    child: Opacity(
+                      opacity: value,
+                      child: child,
+                    ),
+                  );
+                },
+                child: GestureDetector(
+                  onTap: _openAddTask,
+                  child: Container(
+                    width: 64,
+                    height: 64,
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                        colors: [
+                          colorScheme.primary,
+                          colorScheme.secondary,
+                        ],
+                      ),
+                      borderRadius: BorderRadius.circular(20),
+                      boxShadow: [
+                        BoxShadow(
+                          color: colorScheme.primary.withOpacity(0.4),
+                          blurRadius: 20,
+                          offset: const Offset(0, 8),
+                          spreadRadius: 0,
+                        ),
+                      ],
+                    ),
+                    child: const Icon(
+                      Icons.add_rounded,
+                      color: Colors.white,
+                      size: 32,
+                    ),
                   ),
-                  _NavItem(
-                    icon: Icons.insights_rounded,
-                    active: _selectedIndex == 1,
-                    onTap: () => _onTabSelected(1),
-                  ),
-                  const SizedBox(width: 56),
-                  _NavItem(
-                    icon: Icons.history_rounded,
-                    active: _selectedIndex == 2,
-                    onTap: () => _onTabSelected(2),
-                  ),
-                  _NavItem(
-                    icon: Icons.settings_rounded,
-                    active: _selectedIndex == 3,
-                    onTap: () => _onTabSelected(3),
-                  ),
-                ],
+                ),
               ),
             ),
-          ),
-        ),
+        ],
       ),
     );
   }
 }
 
-class _NavItem extends StatelessWidget {
-  final IconData icon;
-  final bool active;
-  final VoidCallback onTap;
+class _PageIndicator extends StatelessWidget {
+  final int count;
+  final int currentIndex;
+  final Color activeColor;
+  final Color inactiveColor;
 
-  const _NavItem({
-    required this.icon,
-    required this.active,
-    required this.onTap,
+  const _PageIndicator({
+    required this.count,
+    required this.currentIndex,
+    required this.activeColor,
+    required this.inactiveColor,
   });
 
   @override
   Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    final isDark = Theme.of(context).brightness == Brightness.dark;
-
-    return Expanded(
-      child: Material(
-        color: Colors.transparent,
-        child: InkWell(
-          onTap: onTap,
-          borderRadius: BorderRadius.circular(16),
-          splashColor: colorScheme.primary.withOpacity(0.1),
-          highlightColor: colorScheme.primary.withOpacity(0.05),
-          child: AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            padding: const EdgeInsets.symmetric(vertical: 6),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                AnimatedContainer(
-                  duration: const Duration(milliseconds: 200),
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    gradient: active
-                        ? LinearGradient(
-                            colors: [
-                              colorScheme.primary.withOpacity(0.15),
-                              colorScheme.secondary.withOpacity(0.15),
-                            ],
-                          )
-                        : null,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                  child: Icon(
-                    icon,
-                    size: 26,
-                    color: active
-                        ? colorScheme.primary
-                        : (isDark ? Colors.grey[500] : Colors.grey[600]),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-
-class _PlaceholderScreen extends StatelessWidget {
-  final String label;
-  final String emoji;
-
-  const _PlaceholderScreen({required this.label, required this.emoji});
-
-  @override
-  Widget build(BuildContext context) {
     return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-          colors: [
-            Theme.of(context).colorScheme.primary.withOpacity(0.05),
-            Theme.of(context).colorScheme.secondary.withOpacity(0.05),
-          ],
-        ),
+        color: Theme.of(context).cardColor.withOpacity(0.8),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.05),
+            blurRadius: 10,
+            offset: const Offset(0, 2),
+          ),
+        ],
       ),
-      child: Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Text(
-              emoji,
-              style: const TextStyle(fontSize: 64),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: List.generate(count, (index) {
+          final isActive = index == currentIndex;
+          return AnimatedContainer(
+            duration: const Duration(milliseconds: 300),
+            margin: const EdgeInsets.symmetric(horizontal: 4),
+            width: isActive ? 24 : 8,
+            height: 8,
+            decoration: BoxDecoration(
+              gradient: isActive
+                  ? LinearGradient(
+                      colors: [activeColor, activeColor.withOpacity(0.7)],
+                    )
+                  : null,
+              color: isActive ? null : inactiveColor,
+              borderRadius: BorderRadius.circular(4),
             ),
-            const SizedBox(height: 16),
-            Text(
-              label,
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.w600,
-                color: Theme.of(context).colorScheme.primary,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              '近日公開',
-              style: TextStyle(
-                fontSize: 14,
-                color: Colors.grey[600],
-              ),
-            ),
-          ],
-        ),
+          );
+        }),
       ),
     );
   }
